@@ -12,7 +12,10 @@ import java.util.*;
     private final MapGenerator mapGen;
     public String cityMap = null;  // We make this public in order to access it for testing, you would not normally do this
 
-    private ArrayList<Road> RoadMap;
+    private List<Road> RoadList;
+    private HashMap<String, Road> RoadMap = null; // Roadmap - Maps a String to a road
+    private HashMap<Integer, Integer> IntersectionMap = null; // Map of intersections - Maps an integer to an intersection
+    private List<Road> InnerCity, OuterCity; // 2 Disjoiont Sets
 
 
 
@@ -34,7 +37,7 @@ import java.util.*;
         // My work begins here
 
         int i = 0;
-        List<Road> RoadList = new ArrayList<>();
+        RoadList = new ArrayList<>();
 
         cityMap = cityMap.replace("{{", "{");
         cityMap = cityMap.replace("}}", "}");
@@ -46,9 +49,8 @@ import java.util.*;
             RoadList.add(tempRoad);
             i++;
         }
-        for(Road tempRoad : RoadList){
-            System.out.println(tempRoad.getRoadName());
-        }
+
+        System.out.println("Test");
 
         
     }
@@ -185,4 +187,106 @@ class Road {
         return travelTime;
     }
 
+    public List<String> getAdjacent(){
+        List<String> adjacent = new ArrayList<>();
+        adjacent.add(Endpoint1);
+        adjacent.add(Endpoint2);
+
+        return adjacent;
+    }
+
+}
+
+
+class Intersection {
+    private String IntersectionName;
+    private List<Road> ConnectedRoads;
+
+    public Intersection(String name){
+        IntersectionName = name;
+    }
+
+    public void addConnectedRoad(Road newRoad){
+        Boolean connected = false;
+        if (newRoad.getEnd1().equals(IntersectionName)){
+            connected = true;
+        }
+        if(newRoad.getEnd2().equals(IntersectionName)){
+            connected = true;
+        }
+        if (connected = true){
+            ConnectedRoads.add(newRoad);
+        }
+    }
+}
+
+class IntersectionUtils {
+    public boolean checkRoadIntersection(Road road1, Road road2){
+        boolean present = false;
+
+        if (road1.getEnd1().equals(road2.getEnd1())) present = true;
+        else if (road1.getEnd1().equals(road2.getEnd2())) present = true;
+        else if (road1.getEnd1().equals(road2.getEnd1())) present = true;
+        else if (road1.getEnd2().equals(road2.getEnd2())) present = true;
+
+        return present;
+    }
+
+
+}
+
+
+
+// disjoint sets is stored in an int array. The integers used are mapped to the indexes in the intersection hashmap
+class disjointSets{
+    // to store the parent of each node
+    private int [] parent;				
+    
+    /** constructor
+     */
+    public disjointSets(int size)
+    {
+        parent = new int[size];
+    }
+
+    /** make a singleton for a node
+     * @param k the node
+     */
+    public void make(int k) 
+    {
+        parent[k] = k;
+    }
+
+    /** find the parent of a node
+     * @param k the node
+     */
+    public int find(int k) 
+    {
+        while (k != parent[k]) 
+            k = parent[k];
+        return k;
+    }
+
+    /** find the union of two nodes
+     * @param i one node
+     * @param j another node
+     */
+    public void union(int i, int j) 
+    {
+        i = find(i);	// find the root of the set 
+        j = find(j);	// find the root of the set
+        parent[i] = j;  // make one root child of another
+        l
+    }
+
+    public void print()
+    {
+        System.out.print("  nodes:");
+        for(int k = 0; k < parent.length; k++)
+            System.out.print(" " + k);
+        System.out.print("\nparents:");
+        for(int k = 0; k < parent.length; k++)
+            System.out.print(" " + parent[k]);
+        System.out.println();
+    }
 }
