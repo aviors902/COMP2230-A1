@@ -13,9 +13,7 @@ import java.util.*;
     public String cityMap = null;  // We make this public in order to access it for testing, you would not normally do this
 
     private List<Road> RoadList;
-    private HashMap<String, Road> RoadMap = null; // Roadmap - Maps a String to a road
-    private HashMap<Integer, Integer> IntersectionMap = null; // Map of intersections - Maps an integer to an intersection
-    private List<Road> InnerCity, OuterCity; // 2 Disjoiont Sets
+    private disjointSetsRank cityMapRank;
 
 
 
@@ -36,21 +34,7 @@ import java.util.*;
         
         // My work begins here
 
-        int i = 0;
-        RoadList = new ArrayList<>();
 
-        cityMap = cityMap.replace("{{", "{");
-        cityMap = cityMap.replace("}}", "}");
-
-        String[] StreetList = cityMap.split("\\}, \\{");
-
-        while (i < StreetList.length){
-            Road tempRoad = new Road(StreetList[i]);
-            RoadList.add(tempRoad);
-            i++;
-        }
-
-        System.out.println("Test");
 
         
     }
@@ -136,6 +120,7 @@ class Road {
     private String RoadName;
     private float travelTime;
 
+    // Constructor for new roadmap
     public Road(String roadString){
         roadString = roadString.replace("{", "");
         roadString = roadString.replace("}", "");
@@ -146,6 +131,14 @@ class Road {
         Endpoint2 = roadArray[2];
         travelTime = Float.parseFloat(roadArray[3]);
 
+    }
+
+    // Overloaded constructor for road cloning
+    public Road(String Name, String End1, String End2, Float TravelTime){
+        RoadName = Name;
+        Endpoint1 = End1;
+        Endpoint2 = End2;
+        travelTime = TravelTime;
     }
 
     public void setRoadName(String[] roadArray){
@@ -198,29 +191,8 @@ class Road {
 }
 
 
-class Intersection {
-    private String IntersectionName;
-    private List<Road> ConnectedRoads;
 
-    public Intersection(String name){
-        IntersectionName = name;
-    }
-
-    public void addConnectedRoad(Road newRoad){
-        Boolean connected = false;
-        if (newRoad.getEnd1().equals(IntersectionName)){
-            connected = true;
-        }
-        if(newRoad.getEnd2().equals(IntersectionName)){
-            connected = true;
-        }
-        if (connected = true){
-            ConnectedRoads.add(newRoad);
-        }
-    }
-}
-
-class IntersectionUtils {
+class RoadMapUtils {
     public boolean checkRoadIntersection(Road road1, Road road2){
         boolean present = false;
 
@@ -232,21 +204,45 @@ class IntersectionUtils {
         return present;
     }
 
+    public List<Road> generateRoadMap(String cityMap){
+        int i = 0;
+        List<Road> RoadList = new ArrayList<>();
+
+        cityMap = cityMap.replace("{{", "{");
+        cityMap = cityMap.replace("}}", "}");
+
+        String[] StreetList = cityMap.split("\\}, \\{");
+
+        while (i < StreetList.length){
+            Road tempRoad = new Road(StreetList[i]);
+            RoadList.add(tempRoad);
+            i++;
+        }
+
+        return RoadList;
+    }
+
+    public Road cloneRoad(Road Target){
+        Road NewRoad = new Road(Target.getRoadName(), Target.getEnd1(), Target.getEnd2(), Target.getTravelTime());
+        return NewRoad;
+    }
+    
 
 }
 
 
+class disjointSetsRank{
 
-// disjoint sets is stored in an int array. The integers used are mapped to the indexes in the intersection hashmap
-class disjointSets{
     // to store the parent of each node
-    private int [] parent;				
+    private int [] parent;			
+    private int [] rank;	
     
     /** constructor
      */
-    public disjointSets(int size)
+    public disjointSetsRank(int size)
     {
-        parent = new int[size];
+        parent = new int[2*size];
+        rank = new int[2*size];
     }
 
     /** make a singleton for a node
@@ -255,6 +251,7 @@ class disjointSets{
     public void make(int k) 
     {
         parent[k] = k;
+        rank[k] = 0;
     }
 
     /** find the parent of a node
@@ -262,9 +259,16 @@ class disjointSets{
      */
     public int find(int k) 
     {
-        while (k != parent[k]) 
-            k = parent[k];
-        return k;
+        int r = k;
+        while (r != parent[r]) 
+            r = parent[r];
+        while(parent[k] != r)
+        {
+            int kk = parent[k];
+            parent[k] = r;
+            k = kk;
+        }
+        return r;
     }
 
     /** find the union of two nodes
@@ -275,18 +279,16 @@ class disjointSets{
     {
         i = find(i);	// find the root of the set 
         j = find(j);	// find the root of the set
-        parent[i] = j;  // make one root child of another
-        l
+        // make one root child of another
+        if (rank[i] < rank[j])
+            parent[i] = j; 
+        else if (rank[i] > rank[j])
+            parent[j] = i;
+        else
+        {
+            parent[i] = j;
+            rank[j] = rank[j] + 1;
+        }
     }
 
-    public void print()
-    {
-        System.out.print("  nodes:");
-        for(int k = 0; k < parent.length; k++)
-            System.out.print(" " + k);
-        System.out.print("\nparents:");
-        for(int k = 0; k < parent.length; k++)
-            System.out.print(" " + parent[k]);
-        System.out.println();
-    }
 }

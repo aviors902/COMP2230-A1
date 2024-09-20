@@ -1,0 +1,6 @@
+{
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "A1/src/TrafficAssistant.jar"
+    ]
+}

@@ -27,7 +27,7 @@ public class TrafficMain {
         }
         
         analyser.loadMap();
-        verifier.storeVerifyMap(analyser.cityMap);
+        verifier.storeVerifyMap(TESTMAP);
 
         if(args.length > 0 && args[0].equals("test")){
             checkTestmap(analyser, verifier);
