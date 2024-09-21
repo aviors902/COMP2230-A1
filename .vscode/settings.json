@@ -1,6 +1,8 @@
 {
     "java.project.referencedLibraries": [
-        "lib/**/*.jar",
-        "A1/src/TrafficAssistant.jar"
+        "c:\\Users\\Mathieu\\Documents\\GitHub\\COMP2230-A1\\A1\\src\\TrafficAssistant.jar"
+    ],
+    "java.project.sourcePaths": [
+        "A1\\src"
     ]
 }

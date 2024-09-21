@@ -13,9 +13,8 @@ import java.util.*;
     public String cityMap = null;  // We make this public in order to access it for testing, you would not normally do this
 
     private List<Road> RoadList;
-    private disjointSetsRank cityMapRank;
-
-
+    private disjointSetsRank intersectionMapRank;
+    private List<String> IntersectionList;
 
     public TrafficAnalyser(int seed){
         mapGen = new MapGenerator(seed); // Pass a seed to the random number generator, allows for reproducibility
@@ -34,8 +33,14 @@ import java.util.*;
         
         // My work begins here
 
+        RoadList = RoadMapUtils.generateRoadMap(cityMap); 
+        System.out.println("Map Loaded Successfully");
+
+        IntersectionList = RoadMapUtils.generateIntersectionsList(cityMap);
+        System.out.println("Intersections List Generated");
 
 
+        // intersectionMapRank = RoadMapUtils.mapInnerCityOuterCity(RoadList, IntersectionList);
         
     }
 
@@ -47,8 +52,13 @@ import java.util.*;
      * 
      */
     public boolean isInInnerCity(String intersectionName) {
+        
         // Your code here
-        throw new UnsupportedOperationException("Not implemented yet"); // Get rid of this line when you start implementing
+        Boolean isInnerCity = false;
+        
+
+
+        return isInnerCity;
 
     }
 
@@ -187,9 +197,13 @@ class Road {
 
         return adjacent;
     }
+ // Overriding the .equals(obj) method
+    public boolean equals(Road road){
+        if((this.getRoadName().equals(road.getRoadName())) && (this.getTravelTime() == road.getTravelTime()))return true;
+        else return false;
+    }
 
 }
-
 
 
 class RoadMapUtils {
@@ -204,7 +218,8 @@ class RoadMapUtils {
         return present;
     }
 
-    public List<Road> generateRoadMap(String cityMap){
+    // Takes the string cityMap and extracts data from it creating a list of Road objects
+    public static List<Road> generateRoadMap(String cityMap){
         int i = 0;
         List<Road> RoadList = new ArrayList<>();
 
@@ -222,12 +237,51 @@ class RoadMapUtils {
         return RoadList;
     }
 
+
+    public static List<String> generateIntersectionsList(String cityMap) {
+        Set<String> intersectionSet = new HashSet<>();
+        // String cleanup for processing
+        cityMap = cityMap.replace("{{", "{");
+        cityMap = cityMap.replace("}}", "}");
+        String[] StreetList = cityMap.split("\\}, \\{");
+        
+        // Takes the list of roads and their endpoints, adds each endpoint to a SET to ensure no duplicates, then converts the set to an ArrayList
+        // Returns the arraylist
+
+        for(String street : StreetList){
+            // String cleanup for processing
+            street = street.replace("{", "");
+            street = street.replace("}", "");
+            String[] streetArray = street.split(", ");
+            // Adding the actual endpoints of each street to the set
+            intersectionSet.add(streetArray[1]);
+            intersectionSet.add(streetArray[2]);
+        }
+        return new ArrayList<>(intersectionSet);
+    }
+
+    public static disjointSetsRank mapInnerCityOuterCity(List<Road> roadsList, List<String> IntersectionsList){
+        disjointSetsRank cityMap = new disjointSetsRank(roadsList.size());
+
+        // Creates a node for each intersection in the disjoint set
+        for(String intersection : IntersectionsList){
+            cityMap.make(IntersectionsList.indexOf(intersection));
+        }
+
+        // Checks every road and union the intersections that are reachable
+        for(Road road : roadsList){
+            cityMap.union((IntersectionsList.indexOf(road.getEnd1())), (IntersectionsList.indexOf(road.getEnd2())));
+        }
+
+        cityMap.print();
+        return cityMap;
+    }
+
+    // Deep copy method for cloning road objects
     public Road cloneRoad(Road Target){
         Road NewRoad = new Road(Target.getRoadName(), Target.getEnd1(), Target.getEnd2(), Target.getTravelTime());
         return NewRoad;
     }
-    
-
 }
 
 
@@ -235,7 +289,8 @@ class disjointSetsRank{
 
     // to store the parent of each node
     private int [] parent;			
-    private int [] rank;	
+    private int [] rank;
+    private final int setSize;
     
     /** constructor
      */
@@ -243,6 +298,7 @@ class disjointSetsRank{
     {
         parent = new int[2*size];
         rank = new int[2*size];
+        setSize = size;
     }
 
     /** make a singleton for a node
@@ -258,7 +314,7 @@ class disjointSetsRank{
      * @param k the node
      */
     public int find(int k) 
-    {
+    {   
         int r = k;
         while (r != parent[r]) 
             r = parent[r];
@@ -289,6 +345,20 @@ class disjointSetsRank{
             parent[i] = j;
             rank[j] = rank[j] + 1;
         }
+    }
+
+    public void print()
+    {
+        System.out.print("  nodes:");
+        for(int k = 0; k < setSize; k++)
+            System.out.print(" " + k);
+        System.out.print("\nparents:");
+        for(int k = 0; k < setSize; k++)
+            System.out.print(" " + parent[k]);
+        System.out.print("\n  ranks:");
+        for(int k = 0; k < setSize; k++)
+            System.out.print(" " + rank[k]);
+        System.out.println();
     }
 
 }

@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "TrafficMain",
+            "request": "launch",
+            "mainClass": "TrafficMain",
+            "projectName": "COMP2230-A1_4643bd19"
+        },
+        {
+            "type": "java",
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}"
@@ -17,7 +24,6 @@
             "mainClass": "TrafficMain",
             "projectName": "COMP2230-A1_982431de",
             "args": "test"
-
         }
     ]
 }
