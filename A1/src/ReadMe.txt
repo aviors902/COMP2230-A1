@@ -7,9 +7,9 @@
 
  This program requires the following files to run:
     - TrafficAnalyser.java
-    - Road.java
-    - RoadMapUtils.java
-    - DisjointSetsRank.java
+    - Road.java                 **Contains classes used in TrafficAnalyser.java**
+    - RoadMapUtils.java         **Contains classes used in TrafficAnalyser.java**
+    - DisjointSetsRank.java     **Contains classes used in TrafficAnalyser.java**
     - TrafficAssistant.jar
     - TrafficMain.java
 

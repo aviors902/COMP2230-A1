@@ -56,7 +56,7 @@ import java.util.Set;
         // Generates a Hash Map of the entire city's intersections. Key is the intersection name, stored value is all the immediately adjacent roads.
         EntireCityIntersectionsMap = RoadMapUtils.mapEntireCityIntersectionsToRoads(RoadList);
 
-        
+
     
     }
 
@@ -72,10 +72,9 @@ import java.util.Set;
         // Your code here
         Boolean isInnerCity = false;
 
-
+        // Checks if the supplied node's rank is equal to it's highest parent's rank. If true, the node is located in the inner city.
         int intersectionIndex = IntersectionList.indexOf(intersectionName);
         if((InnerOuterMap.getRank(intersectionIndex) == InnerOuterMap.getHighestRank())) isInnerCity = true;
-
         return isInnerCity;
 
     }
@@ -115,18 +114,17 @@ import java.util.Set;
             There are 2 loops contained within. They are identical but performed on each endpoint of the road being queried
             The loops collect a list all the intersections which are immediately adjacent to the target endpoint. If those intersections have 2 or less adjacent roads (Including the one being queried), 
             then they are an intersection connected to a bottleneck road
-            This is an implementation of Bredth first Search
         */
         for (Road key : InnerCityRoads){
             String endpoint1 = key.getEnd1();
             String endpoint2 = key.getEnd2();
 
-            adjacentIntersectionsList = RoadMapUtils.getAdjacentIntersections(endpoint1, InnerCityIntersectionsMap, InnerCityIntersections);
+            adjacentIntersectionsList = RoadMapUtils.getAdjacentIntersections(endpoint1, InnerCityIntersectionsMap);
             for (String intersection : adjacentIntersectionsList){
                 int numberOfAdjacentRoads = InnerCityIntersectionsMap.get(intersection).size();
                 if (numberOfAdjacentRoads <= 2) BottleNeckIntersectionsList.add(endpoint1);
             }
-            adjacentIntersectionsList = RoadMapUtils.getAdjacentIntersections(endpoint2, InnerCityIntersectionsMap, InnerCityIntersections);
+            adjacentIntersectionsList = RoadMapUtils.getAdjacentIntersections(endpoint2, InnerCityIntersectionsMap);
             for (String intersection : adjacentIntersectionsList){
                 int numberOfAdjacentRoads = InnerCityIntersectionsMap.get(intersection).size();
                 if (numberOfAdjacentRoads <= 2) BottleNeckIntersectionsList.add(endpoint2);
@@ -163,7 +161,7 @@ import java.util.Set;
      */
     public String[] lockdownIntersection(String intersectionName, int hops) {
         // Your code here
-        List<String> listed = RoadMapUtils.getRoadsWithinHops(hops, intersectionName, EntireCityIntersectionsMap, InnerCityIntersections);
+        List<String> listed = RoadMapUtils.getRoadsWithinHops(hops, intersectionName, EntireCityIntersectionsMap);
         return listed.toArray(new String[listed.size()]);
     }
 

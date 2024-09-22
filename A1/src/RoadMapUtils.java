@@ -34,17 +34,15 @@ public class RoadMapUtils {
         return RoadList;
     }
 
-
+    // Similar to generateRoadMap but instead of road objects being returned, it is a list of Intersections stored as Strings
     public static List<String> generateIntersectionsList(String cityMap) {
         Set<String> intersectionSet = new HashSet<>();
         // String cleanup for processing
         cityMap = cityMap.replace("{{", "{");
         cityMap = cityMap.replace("}}", "}");
         String[] StreetList = cityMap.split("\\}, \\{");
-        
         // Takes the list of roads and their endpoints, adds each endpoint to a SET to ensure no duplicates, then converts the set to an ArrayList
         // Returns the arraylist
-
         for(String street : StreetList){
             // String cleanup for processing
             street = street.replace("{", "");
@@ -57,10 +55,12 @@ public class RoadMapUtils {
         return new ArrayList<>(intersectionSet);
     }
 
+    // Crteates a Ranked Disjoint Set and returns the ranked set.
+    // Argument roadsList is a List of Road Objects
+    // Argument IntersectionsList is a List of Strings denoting the names of all the intersections in the city
     public static DisjointSetsRank rankInnerCityOuterCity(List<Road> roadsList, List<String> IntersectionsList){
 
         DisjointSetsRank cityMap = new DisjointSetsRank(IntersectionsList.size());
-
         // Checking size of the array vs number of nodes 
         for (String intersection : IntersectionsList){
             cityMap.make(IntersectionsList.indexOf(intersection));
@@ -112,12 +112,20 @@ public class RoadMapUtils {
         return map;
     }    
 
-
+    // Similar to the mapInnerCityIntersectionsToRoads, but does not include an isInnerCity() check, instead just maps the entire city
+    public static HashMap<String, List<Road>> mapEntireCityIntersectionsToRoads(List<Road> roadList){
+        HashMap<String, List<Road>> allCityIntersectionsMap = new HashMap<>();
+        for (Road road : roadList){
+            addToHashedArrayList(allCityIntersectionsMap, road.getEnd1(), road);
+            addToHashedArrayList(allCityIntersectionsMap, road.getEnd2(), road);
+        }
+        return allCityIntersectionsMap;
+    }
+    
     // Takes the argument intersection and returns a list of all the immediately adjacent intersections found in the HashMap.
     // Arg targetIntersection is the intersection you are using BFS on to locate all immediately adjacent intersections
     // Arg map is the hashmap of all immediately adjacent roads
-    // Arg innerCityIntersections is the list of all intersections in the inner city
-    public static List<String> getAdjacentIntersections(String targetIntersection, HashMap<String, List<Road>> map, List<String> innerCityIntersections){
+    public static List<String> getAdjacentIntersections(String targetIntersection, HashMap<String, List<Road>> map){
         Set<String> adjacentIntersections = new HashSet<>();
         List<Road> adjacentRoads = new ArrayList<>();
 
@@ -132,14 +140,17 @@ public class RoadMapUtils {
         return new ArrayList<>(adjacentIntersections);
     }
 
-    public static List<String> getRoadsWithinHops(int MaxHops, String targetIntersection, HashMap<String, List<Road>> map, List<String> innerCityIntersections){
+    // Will locate all the roads that are within a specified number of intersections from the target intersection.
+    public static List<String> getRoadsWithinHops(int MaxHops, String targetIntersection, HashMap<String, List<Road>> map){
         Set<String> roadNamesList = new HashSet<>();
 
         Set<String> intersectionsWithinRadius = new HashSet<>();
         List<String> immediatleyAdjacentIntersections = new ArrayList<>();
+
         // Setting the target intersection to be the only intersection in the list to be iterated ober
         immediatleyAdjacentIntersections.add(targetIntersection);
         int totalHopsTaken = 0; // gets all the immediately adjacent intersections. 
+
         // Loop only triggers if there is more than 1 hop required 
         while (totalHopsTaken < MaxHops) {
             List<String> newAdjacentIntersections = new ArrayList<>(); // Temporary list for new adjacent intersections
@@ -148,37 +159,25 @@ public class RoadMapUtils {
             for (String intersection : immediatleyAdjacentIntersections) {
                 if (!intersectionsWithinRadius.contains(intersection)) {
                     // Get adjacent intersections and add to the temporary list
-                    newAdjacentIntersections.addAll(getAdjacentIntersections(intersection, map, innerCityIntersections));
+                    newAdjacentIntersections.addAll(getAdjacentIntersections(intersection, map));
                     intersectionsWithinRadius.add(intersection); // Mark as visited
                 }
             }
-            
             // Update the list for the next loop with newly discovered adjacent intersections
             immediatleyAdjacentIntersections = newAdjacentIntersections;
-    
             totalHopsTaken++;
         }
 
         intersectionsWithinRadius.addAll(immediatleyAdjacentIntersections);
 
-
+        // Collecting the list of roads attached to the intersections within specified number of hops
         for (String intersection : intersectionsWithinRadius){
             List<Road> intersectionRoads = map.get(intersection);
             for (Road road : intersectionRoads){
                 roadNamesList.add(road.getRoadName());
             }
         }
-
         return new ArrayList<>(roadNamesList);
-    }
-    
-    public static HashMap<String, List<Road>> mapEntireCityIntersectionsToRoads(List<Road> roadList){
-        HashMap<String, List<Road>> allCityIntersectionsMap = new HashMap<>();
-        for (Road road : roadList){
-            addToHashedArrayList(allCityIntersectionsMap, road.getEnd1(), road);
-            addToHashedArrayList(allCityIntersectionsMap, road.getEnd2(), road);
-        }
-        return allCityIntersectionsMap;
     }
 }
 
