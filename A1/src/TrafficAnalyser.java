@@ -7,13 +7,14 @@
  * This is where you will write your code for the assignment. The required methods have been started for you, you may add additional helper methods and classes as required.
  */
 import java.util.*; 
+import javax.lang.model.type.IntersectionType;
 
  public class TrafficAnalyser {
     private final MapGenerator mapGen;
     public String cityMap = null;  // We make this public in order to access it for testing, you would not normally do this
 
     private List<Road> RoadList;
-    private disjointSetsRank intersectionMapRank;
+    private DisjointSetsRank intersectionMapRank;
     private List<String> IntersectionList;
 
     public TrafficAnalyser(int seed){
@@ -32,12 +33,19 @@ import java.util.*;
         }
         
         // My work begins here
+        // System.out.println(cityMap);
 
         RoadList = RoadMapUtils.generateRoadMap(cityMap); 
         System.out.println("Map Loaded Successfully");
 
+        /* for( Road road : RoadList){
+            System.out.println(road.getRoadName() + " - " + road.getEnd1() + " - " + road.getEnd2());
+        } */
+
         IntersectionList = RoadMapUtils.generateIntersectionsList(cityMap);
         System.out.println("Intersections List Generated");
+
+        isInInnerCity("test");
 
 
         // intersectionMapRank = RoadMapUtils.mapInnerCityOuterCity(RoadList, IntersectionList);
@@ -55,7 +63,7 @@ import java.util.*;
         
         // Your code here
         Boolean isInnerCity = false;
-        
+        DisjointSetsRank innerOuterMap = RoadMapUtils.mapInnerCityOuterCity(RoadList, IntersectionList);
 
 
         return isInnerCity;
@@ -212,7 +220,6 @@ class RoadMapUtils {
 
         if (road1.getEnd1().equals(road2.getEnd1())) present = true;
         else if (road1.getEnd1().equals(road2.getEnd2())) present = true;
-        else if (road1.getEnd1().equals(road2.getEnd1())) present = true;
         else if (road1.getEnd2().equals(road2.getEnd2())) present = true;
 
         return present;
@@ -260,20 +267,20 @@ class RoadMapUtils {
         return new ArrayList<>(intersectionSet);
     }
 
-    public static disjointSetsRank mapInnerCityOuterCity(List<Road> roadsList, List<String> IntersectionsList){
-        disjointSetsRank cityMap = new disjointSetsRank(roadsList.size());
+    public static DisjointSetsRank mapInnerCityOuterCity(List<Road> roadsList, List<String> IntersectionsList){
 
-        // Creates a node for each intersection in the disjoint set
-        for(String intersection : IntersectionsList){
+        DisjointSetsRank cityMap = new DisjointSetsRank(IntersectionsList.size());
+
+        // Checking size of the array vs number of nodes 
+        for (String intersection : IntersectionsList){
             cityMap.make(IntersectionsList.indexOf(intersection));
         }
-
-        // Checks every road and union the intersections that are reachable
+        // Checks every road and union the two intersections that are reachable
         for(Road road : roadsList){
-            cityMap.union((IntersectionsList.indexOf(road.getEnd1())), (IntersectionsList.indexOf(road.getEnd2())));
+           cityMap.union(IntersectionsList.indexOf(road.getEnd1()), IntersectionsList.indexOf(road.getEnd2()));
         }
-
         cityMap.print();
+
         return cityMap;
     }
 
@@ -285,7 +292,7 @@ class RoadMapUtils {
 }
 
 
-class disjointSetsRank{
+class DisjointSetsRank{
 
     // to store the parent of each node
     private int [] parent;			
@@ -294,10 +301,10 @@ class disjointSetsRank{
     
     /** constructor
      */
-    public disjointSetsRank(int size)
+    public DisjointSetsRank(int size)
     {
-        parent = new int[2*size];
-        rank = new int[2*size];
+        parent = new int[size];
+        rank = new int[size];
         setSize = size;
     }
 
@@ -336,12 +343,16 @@ class disjointSetsRank{
         i = find(i);	// find the root of the set 
         j = find(j);	// find the root of the set
         // make one root child of another
-        if (rank[i] < rank[j])
+        if (parent[i] == parent[j]){
+            int d = 1;
+        }
+        else if (rank[i] < rank[j]){
             parent[i] = j; 
-        else if (rank[i] > rank[j])
+        }
+        else if (rank[i] > rank[j]){
             parent[j] = i;
-        else
-        {
+        }
+        else{
             parent[i] = j;
             rank[j] = rank[j] + 1;
         }
@@ -361,4 +372,56 @@ class disjointSetsRank{
         System.out.println();
     }
 
+}
+class DisjointSetsSimple{
+    // to store the parent of each node
+    private int [] parent;				
+    private int arraySize;
+    /** constructor
+     */
+    public DisjointSetsSimple(int size)
+    {
+        parent = new int[size];
+        arraySize = size;
+    }
+
+    /** make a singleton for a node
+     * @param k the node
+     */
+    public void make(int k) 
+    {
+        parent[k] = k;
+    }
+
+    /** find the parent of a node
+     * @param k the node
+     */
+    public int find(int k) 
+    {
+        while (k != parent[k]) 
+            k = parent[k];
+        return k;
+    }
+
+    /** find the union of two nodes
+     * @param i one node
+     * @param j another node
+     */
+    public void union(int i, int j) 
+    {
+        i = find(i);	// find the root of the set 
+        j = find(j);	// find the root of the set
+        parent[i] = j; // make one root child of another
+    }
+
+    public void print()
+    {
+        System.out.print("  nodes:");
+        for(int k = 0; k < arraySize; k++)
+            System.out.print(" " + k);
+        System.out.print("\nparents:");
+        for(int k = 0; k < arraySize; k++)
+            System.out.print(" " + parent[k]);
+        System.out.println();
+    }
 }
