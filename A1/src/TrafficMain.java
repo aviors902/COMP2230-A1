@@ -175,7 +175,7 @@ public class TrafficMain {
         System.out.print("CHECK: cityBottleneckRoads: ");
         String [] myAnswer = analyser.cityBottleneckRoads();
         String [] solution = verifier.verify_cityBottleneckRoads();
-        // Order is not important, so we sort both arrays before checking them to ensure they will be equal if the same elements are present
+       // Order is not important, so we sort both arrays before checking them to ensure they will be equal if the same elements are present
         Arrays.sort(myAnswer);
         Arrays.sort(solution);
         if (Arrays.equals(myAnswer,

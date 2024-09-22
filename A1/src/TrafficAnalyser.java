@@ -6,16 +6,24 @@
  * 
  * This is where you will write your code for the assignment. The required methods have been started for you, you may add additional helper methods and classes as required.
  */
-import java.util.*; 
-import javax.lang.model.type.IntersectionType;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap; 
+import java.util.HashSet;
+import java.util.Set;
 
  public class TrafficAnalyser {
     private final MapGenerator mapGen;
     public String cityMap = null;  // We make this public in order to access it for testing, you would not normally do this
 
     private List<Road> RoadList;
-    private DisjointSetsRank intersectionMapRank;
     private List<String> IntersectionList;
+    private DisjointSetsRank InnerOuterMap;
+    private List<String> InnerCityIntersections = new ArrayList<>();
+    private List<Road> InnerCityRoads = new ArrayList<>();
+    private HashMap<String, List<Road>> InnerCityIntersectionsMap = new HashMap<>(); //  A hashmap of intersections form only within the inner city with the stored value being the immediately adjacent roads
+    private HashMap<String, List<Road>> EntireCityIntersectionsMap = new HashMap<>(); // A hashmap of intersections including the entire city with the stored value being the immediately adjacent roads
+
 
     public TrafficAnalyser(int seed){
         mapGen = new MapGenerator(seed); // Pass a seed to the random number generator, allows for reproducibility
@@ -28,28 +36,28 @@ import javax.lang.model.type.IntersectionType;
      * Write your code below the comment line where indicated.
      */
     public void loadMap(){
+        
         if (cityMap == null) {
             cityMap = mapGen.generateMap();
         }
-        
+
         // My work begins here
-        // System.out.println(cityMap);
-
         RoadList = RoadMapUtils.generateRoadMap(cityMap); 
-        System.out.println("Map Loaded Successfully");
+        IntersectionList = RoadMapUtils.generateIntersectionsList(cityMap);    
+        InnerOuterMap = RoadMapUtils.rankInnerCityOuterCity(RoadList, IntersectionList);
 
-        /* for( Road road : RoadList){
-            System.out.println(road.getRoadName() + " - " + road.getEnd1() + " - " + road.getEnd2());
-        } */
+        for (String intersection : IntersectionList){
+            if (isInInnerCity(intersection)) InnerCityIntersections.add(intersection);
+        }
 
-        IntersectionList = RoadMapUtils.generateIntersectionsList(cityMap);
-        System.out.println("Intersections List Generated");
+        InnerCityRoads = RoadMapUtils.mapInnerCityRoads(InnerCityIntersections, RoadList);
+        // Generates a Hash Map of the inner city intersections. Key is the intersection name, stored value is all the immediately adjacent roads
+        InnerCityIntersectionsMap = RoadMapUtils.mapInnerCityIntersectionsToRoads(InnerCityIntersections, RoadList);
+        // Generates a Hash Map of the entire city's intersections. Key is the intersection name, stored value is all the immediately adjacent roads.
+        EntireCityIntersectionsMap = RoadMapUtils.mapEntireCityIntersectionsToRoads(RoadList);
 
-        isInInnerCity("test");
-
-
-        // intersectionMapRank = RoadMapUtils.mapInnerCityOuterCity(RoadList, IntersectionList);
         
+    
     }
 
     /*
@@ -59,12 +67,14 @@ import javax.lang.model.type.IntersectionType;
      * The 'inner city' is defined as the largest connected component of intersections in the map.
      * 
      */
-    public boolean isInInnerCity(String intersectionName) {
+    public boolean isInInnerCity(String intersectionName) { 
         
         // Your code here
         Boolean isInnerCity = false;
-        DisjointSetsRank innerOuterMap = RoadMapUtils.mapInnerCityOuterCity(RoadList, IntersectionList);
 
+
+        int intersectionIndex = IntersectionList.indexOf(intersectionName);
+        if((InnerOuterMap.getRank(intersectionIndex) == InnerOuterMap.getHighestRank())) isInnerCity = true;
 
         return isInnerCity;
 
@@ -79,10 +89,13 @@ import javax.lang.model.type.IntersectionType;
      */
     public int countInnerCitySlowRoads(double threshold) {
         // Your code here
-
-        throw new UnsupportedOperationException("Not implemented yet"); // Get rid of this line when you start implementing
-    }    
-
+        int count = 0;
+        for (Road road : InnerCityRoads){
+            if (road.getTravelTime() > threshold) count++;
+        }
+        return count;
+    }
+        
     /* 
      * @return An array of road names that represent roads currently in the 'inner city' which, if any single one is closed, would result in an intersection no longer being reachable from the 'inner city'
      * 
@@ -92,8 +105,51 @@ import javax.lang.model.type.IntersectionType;
      */
     public String[] cityBottleneckRoads() {
         // Your code here
+        String[] bottleNecks;
+        Set<String> BottleNeckIntersectionsList = new HashSet<>();
+        Set<String> BottleNeckRoadsList = new HashSet<>();
+        List<String> adjacentIntersectionsList = new ArrayList<>();
 
-        throw new UnsupportedOperationException("Not implemented yet"); // Get rid of this line when you start implementing
+
+        /*  The following for loop checks every road in the inner city if it is a bottleneck
+            There are 2 loops contained within. They are identical but performed on each endpoint of the road being queried
+            The loops collect a list all the intersections which are immediately adjacent to the target endpoint. If those intersections have 2 or less adjacent roads (Including the one being queried), 
+            then they are an intersection connected to a bottleneck road
+            This is an implementation of Bredth first Search
+        */
+        for (Road key : InnerCityRoads){
+            String endpoint1 = key.getEnd1();
+            String endpoint2 = key.getEnd2();
+
+            adjacentIntersectionsList = RoadMapUtils.getAdjacentIntersections(endpoint1, InnerCityIntersectionsMap, InnerCityIntersections);
+            for (String intersection : adjacentIntersectionsList){
+                int numberOfAdjacentRoads = InnerCityIntersectionsMap.get(intersection).size();
+                if (numberOfAdjacentRoads <= 2) BottleNeckIntersectionsList.add(endpoint1);
+            }
+            adjacentIntersectionsList = RoadMapUtils.getAdjacentIntersections(endpoint2, InnerCityIntersectionsMap, InnerCityIntersections);
+            for (String intersection : adjacentIntersectionsList){
+                int numberOfAdjacentRoads = InnerCityIntersectionsMap.get(intersection).size();
+                if (numberOfAdjacentRoads <= 2) BottleNeckIntersectionsList.add(endpoint2);
+            }
+        }
+
+        /* The For loop below takes every intersection that was identified to be attached to a bottleneck road and if it has more than 2 roads, it is ignored
+         * This is because the roads attached to it are not all bottlenecks
+         * If there are 2 or less roads attached to the node, those roads are likely to be a bottleneck
+         * The problem with this is if there is in fact a cycle formed in the graph e.g. a circle. Each node would appear as a bottleneck which is not strictly true, as a path would still exist if it was removed
+         * Assuming the map is being viewed as a tree instead of as a graph, then the rules will apply.
+         */
+        for (String intersection : BottleNeckIntersectionsList){
+            if (InnerCityIntersectionsMap.get(intersection).size() <= 2){
+                for (Road roadName : InnerCityIntersectionsMap.get(intersection)){
+                    BottleNeckRoadsList.add(roadName.getRoadName());
+                }
+            }
+        }
+        // A set was used to avoid duplicates. Converting the set to an array of strings allows the correct type to be returned.
+        bottleNecks = BottleNeckRoadsList.toArray(new String[BottleNeckRoadsList.size()]);
+
+        return bottleNecks;
     }
 
     /*
@@ -107,8 +163,8 @@ import javax.lang.model.type.IntersectionType;
      */
     public String[] lockdownIntersection(String intersectionName, int hops) {
         // Your code here
-
-        throw new UnsupportedOperationException("Not implemented yet"); // Get rid of this line when you start implementing
+        List<String> listed = RoadMapUtils.getRoadsWithinHops(hops, intersectionName, EntireCityIntersectionsMap, InnerCityIntersections);
+        return listed.toArray(new String[listed.size()]);
     }
 
     /*
@@ -127,301 +183,5 @@ import javax.lang.model.type.IntersectionType;
         // Your code here
 
         throw new UnsupportedOperationException("Not implemented yet"); // Get rid of this line when you start implementing
-    }
-}
-
-
-class Road {
-    private String[] roadArray;
-    private  String Endpoint1;
-    private String Endpoint2;
-    private String RoadName;
-    private float travelTime;
-
-    // Constructor for new roadmap
-    public Road(String roadString){
-        roadString = roadString.replace("{", "");
-        roadString = roadString.replace("}", "");
-        roadArray = roadString.split(", ");
-
-        RoadName = roadArray[0];
-        Endpoint1 = roadArray[1];
-        Endpoint2 = roadArray[2];
-        travelTime = Float.parseFloat(roadArray[3]);
-
-    }
-
-    // Overloaded constructor for road cloning
-    public Road(String Name, String End1, String End2, Float TravelTime){
-        RoadName = Name;
-        Endpoint1 = End1;
-        Endpoint2 = End2;
-        travelTime = TravelTime;
-    }
-
-    public void setRoadName(String[] roadArray){
-        RoadName = roadArray[0];
-    }
-
-    public void setEnd1(String[] roadArray){
-        Endpoint1 = roadArray[1];
-    }
-
-    public void setEnd2(String[] roadArray){
-        Endpoint2 = roadArray[2];
-    }
-
-    public void setTravelTime(String[] roadArray){
-        travelTime = Integer.parseInt(roadArray[3]);
-    }
-
-    public String getRoadName(){
-        return RoadName;
-    }
-
-    public List<String> getEnds(){
-        List<String> endsList = new ArrayList<>();
-        endsList.add(Endpoint1);
-        endsList.add(Endpoint2);
-        return endsList;
-    }
-
-    public String getEnd1(){
-        return Endpoint1;
-    }
-
-    public String getEnd2(){
-        return Endpoint2;
-    }
-
-    public float getTravelTime(){
-        return travelTime;
-    }
-
-    public List<String> getAdjacent(){
-        List<String> adjacent = new ArrayList<>();
-        adjacent.add(Endpoint1);
-        adjacent.add(Endpoint2);
-
-        return adjacent;
-    }
- // Overriding the .equals(obj) method
-    public boolean equals(Road road){
-        if((this.getRoadName().equals(road.getRoadName())) && (this.getTravelTime() == road.getTravelTime()))return true;
-        else return false;
-    }
-
-}
-
-
-class RoadMapUtils {
-    public boolean checkRoadIntersection(Road road1, Road road2){
-        boolean present = false;
-
-        if (road1.getEnd1().equals(road2.getEnd1())) present = true;
-        else if (road1.getEnd1().equals(road2.getEnd2())) present = true;
-        else if (road1.getEnd2().equals(road2.getEnd2())) present = true;
-
-        return present;
-    }
-
-    // Takes the string cityMap and extracts data from it creating a list of Road objects
-    public static List<Road> generateRoadMap(String cityMap){
-        int i = 0;
-        List<Road> RoadList = new ArrayList<>();
-
-        cityMap = cityMap.replace("{{", "{");
-        cityMap = cityMap.replace("}}", "}");
-
-        String[] StreetList = cityMap.split("\\}, \\{");
-
-        while (i < StreetList.length){
-            Road tempRoad = new Road(StreetList[i]);
-            RoadList.add(tempRoad);
-            i++;
-        }
-
-        return RoadList;
-    }
-
-
-    public static List<String> generateIntersectionsList(String cityMap) {
-        Set<String> intersectionSet = new HashSet<>();
-        // String cleanup for processing
-        cityMap = cityMap.replace("{{", "{");
-        cityMap = cityMap.replace("}}", "}");
-        String[] StreetList = cityMap.split("\\}, \\{");
-        
-        // Takes the list of roads and their endpoints, adds each endpoint to a SET to ensure no duplicates, then converts the set to an ArrayList
-        // Returns the arraylist
-
-        for(String street : StreetList){
-            // String cleanup for processing
-            street = street.replace("{", "");
-            street = street.replace("}", "");
-            String[] streetArray = street.split(", ");
-            // Adding the actual endpoints of each street to the set
-            intersectionSet.add(streetArray[1]);
-            intersectionSet.add(streetArray[2]);
-        }
-        return new ArrayList<>(intersectionSet);
-    }
-
-    public static DisjointSetsRank mapInnerCityOuterCity(List<Road> roadsList, List<String> IntersectionsList){
-
-        DisjointSetsRank cityMap = new DisjointSetsRank(IntersectionsList.size());
-
-        // Checking size of the array vs number of nodes 
-        for (String intersection : IntersectionsList){
-            cityMap.make(IntersectionsList.indexOf(intersection));
-        }
-        // Checks every road and union the two intersections that are reachable
-        for(Road road : roadsList){
-           cityMap.union(IntersectionsList.indexOf(road.getEnd1()), IntersectionsList.indexOf(road.getEnd2()));
-        }
-        cityMap.print();
-
-        return cityMap;
-    }
-
-    // Deep copy method for cloning road objects
-    public Road cloneRoad(Road Target){
-        Road NewRoad = new Road(Target.getRoadName(), Target.getEnd1(), Target.getEnd2(), Target.getTravelTime());
-        return NewRoad;
-    }
-}
-
-
-class DisjointSetsRank{
-
-    // to store the parent of each node
-    private int [] parent;			
-    private int [] rank;
-    private final int setSize;
-    
-    /** constructor
-     */
-    public DisjointSetsRank(int size)
-    {
-        parent = new int[size];
-        rank = new int[size];
-        setSize = size;
-    }
-
-    /** make a singleton for a node
-     * @param k the node
-     */
-    public void make(int k) 
-    {
-        parent[k] = k;
-        rank[k] = 0;
-    }
-
-    /** find the parent of a node
-     * @param k the node
-     */
-    public int find(int k) 
-    {   
-        int r = k;
-        while (r != parent[r]) 
-            r = parent[r];
-        while(parent[k] != r)
-        {
-            int kk = parent[k];
-            parent[k] = r;
-            k = kk;
-        }
-        return r;
-    }
-
-    /** find the union of two nodes
-     * @param i one node
-     * @param j another node
-     */
-    public void union(int i, int j) 
-    {
-        i = find(i);	// find the root of the set 
-        j = find(j);	// find the root of the set
-        // make one root child of another
-        if (parent[i] == parent[j]){
-            int d = 1;
-        }
-        else if (rank[i] < rank[j]){
-            parent[i] = j; 
-        }
-        else if (rank[i] > rank[j]){
-            parent[j] = i;
-        }
-        else{
-            parent[i] = j;
-            rank[j] = rank[j] + 1;
-        }
-    }
-
-    public void print()
-    {
-        System.out.print("  nodes:");
-        for(int k = 0; k < setSize; k++)
-            System.out.print(" " + k);
-        System.out.print("\nparents:");
-        for(int k = 0; k < setSize; k++)
-            System.out.print(" " + parent[k]);
-        System.out.print("\n  ranks:");
-        for(int k = 0; k < setSize; k++)
-            System.out.print(" " + rank[k]);
-        System.out.println();
-    }
-
-}
-class DisjointSetsSimple{
-    // to store the parent of each node
-    private int [] parent;				
-    private int arraySize;
-    /** constructor
-     */
-    public DisjointSetsSimple(int size)
-    {
-        parent = new int[size];
-        arraySize = size;
-    }
-
-    /** make a singleton for a node
-     * @param k the node
-     */
-    public void make(int k) 
-    {
-        parent[k] = k;
-    }
-
-    /** find the parent of a node
-     * @param k the node
-     */
-    public int find(int k) 
-    {
-        while (k != parent[k]) 
-            k = parent[k];
-        return k;
-    }
-
-    /** find the union of two nodes
-     * @param i one node
-     * @param j another node
-     */
-    public void union(int i, int j) 
-    {
-        i = find(i);	// find the root of the set 
-        j = find(j);	// find the root of the set
-        parent[i] = j; // make one root child of another
-    }
-
-    public void print()
-    {
-        System.out.print("  nodes:");
-        for(int k = 0; k < arraySize; k++)
-            System.out.print(" " + k);
-        System.out.print("\nparents:");
-        for(int k = 0; k < arraySize; k++)
-            System.out.print(" " + parent[k]);
-        System.out.println();
     }
 }
